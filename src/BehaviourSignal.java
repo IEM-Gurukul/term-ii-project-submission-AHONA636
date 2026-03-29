@@ -1,9 +1,9 @@
 
-public abstract class BehaviorSignal {
+public abstract class BehaviourSignal {
     private String signalType;
     private String date;
 
-    public BehaviorSignal(String signalType, String date) {
+    public BehaviourSignal(String signalType, String date) {
         this.signalType = signalType;
         this.date = date;
     }

@@ -2,8 +2,7 @@
 import java.util.List;
 
 public class BehaviourAnalyzer {
-    
-    // Analyze a single day
+
     public String analyzeDay(DailyRecord record) {
         int score = record.getTotalStressScore();
         String risk = record.getRiskLevel();
@@ -13,7 +12,7 @@ public class BehaviourAnalyzer {
         sb.append("Risk Level: ").append(risk).append("\n");
 
         // Pattern detection
-        for (BehaviorSignal signal : record.getSignals()) {
+        for (BehaviourSignal signal : record.getSignals()) {
             if (signal instanceof SleepSignal) {
                 SleepSignal s = (SleepSignal) signal;
                 if (s.getHoursSlept() < 5) {
@@ -40,7 +39,6 @@ public class BehaviourAnalyzer {
         StringBuilder sb = new StringBuilder();
         sb.append("=== Weekly Analysis for ").append(user.getName()).append(" ===\n");
 
-        // Only look at last 7 records
         int start = Math.max(0, records.size() - 7);
         for (int i = start; i < records.size(); i++) {
             DailyRecord r = records.get(i);
@@ -53,8 +51,6 @@ public class BehaviourAnalyzer {
         sb.append("Days analyzed: ").append(days).append("\n");
         sb.append("Average stress score: ").append(String.format("%.1f", avgScore)).append("\n");
         sb.append("High-risk days: ").append(highRiskDays).append("\n");
-
-        // Recommendation
         if (avgScore >= 6) {
             sb.append("Recommendation: Consider speaking to a counselor or doctor.\n");
         } else if (avgScore >= 3) {
