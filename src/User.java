@@ -7,7 +7,7 @@ public class User {
     private int age;
     private List<DailyRecord> records; // Composition
 
-    public User(String userId, String name, int age) {
+    public User(String name, int age, String userId ) {
         if (name == null || name.trim().isEmpty())
             throw new IllegalArgumentException("Name cannot be empty");
         if (age < 0 || age > 150)

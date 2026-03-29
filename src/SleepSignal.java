@@ -1,5 +1,5 @@
 
-public class SleepSignal extends BehaviorSignal {
+public class SleepSignal extends BehaviourSignal {
     private double hoursSlept;
 
     public SleepSignal(String date, double hoursSlept) {

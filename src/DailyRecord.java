@@ -5,7 +5,7 @@ import java.util.List;
 public class DailyRecord {
 
     private String date;
-    private List<BehaviorSignal> signals;
+    private List<BehaviourSignal> signals;
 
     // Constructor
     public DailyRecord(String date) {
@@ -15,17 +15,10 @@ public class DailyRecord {
         this.signals = new ArrayList<>();
     }
 
-    // --- Getters (Encapsulation) ---
-
     public String getDate() {
         return date;
     }
-
-    /**
-     * Returns an unmodifiable view of the signals list.
-     * Caller can read but cannot add/remove — protects internal state.
-     */
-    public List<BehaviorSignal> getSignals() {
+    public List<BehaviourSignal> getSignals() {
         return Collections.unmodifiableList(signals);
     }
 
@@ -39,7 +32,7 @@ public class DailyRecord {
      * Adds a behavioral signal to this day's record.
      * Validates that the signal's date matches this record's date.
      */
-    public void addSignal(BehaviorSignal signal) {
+    public void addSignal(BehaviourSignal signal) {
         if (signal == null)
             throw new IllegalArgumentException("Signal cannot be null");
         if (!signal.getDate().equals(this.date))
@@ -49,14 +42,9 @@ public class DailyRecord {
         signals.add(signal);
     }
 
-    /**
-     * Calculates total stress score by summing contributions from all signals.
-     * This is Polymorphism in action — getStressContribution() behaves
-     * differently depending on whether the signal is Sleep, Work, or Stress.
-     */
     public int getTotalStressScore() {
         int total = 0;
-        for (BehaviorSignal signal : signals) {
+        for (BehaviourSignal signal : signals) {
             total += signal.getStressContribution();
         }
         return total;
@@ -77,7 +65,7 @@ public class DailyRecord {
      * Useful to prevent duplicate sleep/work entries.
      */
     public boolean hasSignalOfType(String signalType) {
-        for (BehaviorSignal signal : signals) {
+        for (BehaviourSignal signal : signals) {
             if (signal.getSignalType().equalsIgnoreCase(signalType)) return true;
         }
         return false;
@@ -96,7 +84,7 @@ public class DailyRecord {
         if (signals.isEmpty()) {
             sb.append("  (no signals recorded)\n");
         } else {
-            for (BehaviorSignal signal : signals) {
+            for (BehaviourSignal signal : signals) {
                 sb.append("  ").append(signal).append("\n");
             }
         }
