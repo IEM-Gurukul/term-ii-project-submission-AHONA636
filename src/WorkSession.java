@@ -1,6 +1,5 @@
 
-
-public class WorkSession extends BehaviorSignal {
+public class WorkSession extends BehaviourSignal {
     private double hoursWorked;
 
     public WorkSession(String date, double hoursWorked) {

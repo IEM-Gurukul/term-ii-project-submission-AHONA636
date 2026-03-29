@@ -13,7 +13,7 @@ public class SleepSignal extends BehaviourSignal {
     public int getStressContribution() {
         if (hoursSlept < 4) return 4;
         if (hoursSlept < 6) return 2;
-        if (hoursSlept > 9) return 1; // oversleeping also a mild signal
+        if (hoursSlept > 9) return 1;
         return 0;
     }
 

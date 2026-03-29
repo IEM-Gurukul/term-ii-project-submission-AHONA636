@@ -10,11 +10,7 @@ public abstract class BehaviourSignal {
 
     public String getSignalType() { return signalType; }
     public String getDate() { return date; }
-
-    // Abstract method — every subclass MUST implement this
     public abstract int getStressContribution();
-
-    // Abstract display — polymorphism in action
     public abstract String getSummary();
 
     @Override

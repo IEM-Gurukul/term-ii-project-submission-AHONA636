@@ -4,10 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-/**
- * Entry point for EmpathAI.
- * Demonstrates: Exception handling, multi-user management, clean console UI
- */
 public class MainApp {
 
     private static final Map<String, User> users       = new HashMap<>();
@@ -16,10 +12,6 @@ public class MainApp {
     private static final FileManager     fileManager   = new FileManager();
     private static final ReportGenerator reportGen     = new ReportGenerator();
     private static final BehaviourAnalyzer analyzer     = new BehaviourAnalyzer();
-
-    // -----------------------------------------------------------------------
-    // Entry point
-    // -----------------------------------------------------------------------
 
     public static void main(String[] args) {
         printBanner();
@@ -46,19 +38,12 @@ public class MainApp {
                     default:   System.out.println("  Invalid option — enter a number 0–9.");
                 }
             } catch (Exception e) {
-                // Top-level safety net — no crash reaches the user
                 System.out.println("  Unexpected error: " + e.getMessage());
             }
         }
 
         scanner.close();
     }
-
-    // -----------------------------------------------------------------------
-    // Menu options
-    // -----------------------------------------------------------------------
-
-    /** Option 1 — create a new user and set as current */
     private static void createUser() {
         System.out.println("\n--- Create New User ---");
         try {
@@ -80,7 +65,6 @@ public class MainApp {
         }
     }
 
-    /** Option 2 — switch between loaded users */
     private static void selectUser() {
         System.out.println("\n--- Select User ---");
         if (users.isEmpty()) {
@@ -97,7 +81,6 @@ public class MainApp {
         }
     }
 
-    /** Option 3 — add a full daily record for the current user */
     private static void addDailyRecord() {
         System.out.println("\n--- Add Daily Record ---");
         if (!requireUser()) return;
@@ -105,7 +88,6 @@ public class MainApp {
         try {
             String date = readLine("Date (YYYY-MM-DD)");
 
-            // Warn if a record for this date already exists
             if (currentUser.getRecordByDate(date) != null) {
                 System.out.println("  A record for " + date + " already exists.");
                 String overwrite = readLine("  Overwrite? (yes/no)");
@@ -117,19 +99,17 @@ public class MainApp {
 
             DailyRecord record = new DailyRecord(date);
 
-            // --- Sleep ---
+        
             System.out.println("\n  [Sleep]");
             double sleep = readDouble("  Hours slept last night (e.g. 7.5)");
             record.addSignal(new SleepSignal(date, sleep));
             System.out.println("  Stress contribution: +" + new SleepSignal(date, sleep).getStressContribution());
 
-            // --- Work ---
             System.out.println("\n  [Work]");
             double work = readDouble("  Hours worked today (e.g. 8.0)");
             record.addSignal(new WorkSession(date, work));
             System.out.println("  Stress contribution: +" + new WorkSession(date, work).getStressContribution());
 
-            // --- Self-reported stress ---
             System.out.println("\n  [Stress]");
             System.out.println("  Rate your overall stress today:");
             System.out.println("  1-3 = low   4-6 = moderate   7-10 = high");
@@ -137,15 +117,12 @@ public class MainApp {
             record.addSignal(new StressEntry(date, stress));
             System.out.println("  Stress contribution: +" + new StressEntry(date, stress).getStressContribution());
 
-            // Commit to user
             currentUser.addRecord(record);
 
-            // Instant feedback
             System.out.println("\n  Record saved.");
             System.out.println("  Day score  : " + record.getTotalStressScore() + " / 12");
             System.out.println("  Risk level : " + record.getRiskLevel());
 
-            // Immediate warning for high-risk days
             if (record.getRiskLevel().equals("HIGH")) {
                 System.out.println("\n  ⚠ High stress day detected.");
                 System.out.println("  Consider rest, light activity, or talking to someone you trust.");
@@ -156,7 +133,6 @@ public class MainApp {
         }
     }
 
-    /** Option 4 — full 7-day report */
     private static void viewWeeklyReport() {
         System.out.println("\n--- Weekly Report ---");
         if (!requireUser()) return;
@@ -164,13 +140,11 @@ public class MainApp {
         System.out.println(reportGen.generateReport(currentUser));
     }
 
-    /** Option 5 — single-day report for a chosen date */
     private static void viewDailyReport() {
         System.out.println("\n--- Daily Report ---");
         if (!requireUser()) return;
         if (!requireRecords()) return;
 
-        // Show available dates to help the user
         System.out.println("  Dates on record:");
         for (DailyRecord r : currentUser.getRecords()) {
             System.out.println("    " + r.getDate() + "  [" + r.getRiskLevel() + "]");
@@ -179,8 +153,6 @@ public class MainApp {
         String date = readLine("Enter date (YYYY-MM-DD)");
         System.out.println(reportGen.generateReport(currentUser, date));
     }
-
-    /** Option 6 — raw dump of all records for the current user */
     private static void viewAllRecords() {
         System.out.println("\n--- All Records for " + (currentUser != null ? currentUser.getName() : "?") + " ---");
         if (!requireUser()) return;
@@ -191,12 +163,9 @@ public class MainApp {
         for (DailyRecord r : records) {
             System.out.println(r);
         }
-
-        // Quick weekly analysis inline
         System.out.println(analyzer.analyzeWeek(currentUser));
     }
 
-    /** Option 7 — save current user to file */
     private static void saveCurrentUser() {
         System.out.println("\n--- Save User ---");
         if (!requireUser()) return;
@@ -207,12 +176,10 @@ public class MainApp {
             System.out.println("  Save failed: " + e.getMessage());
         }
     }
-
-    /** Option 8 — load a user from file into memory */
     private static void loadUser() {
         System.out.println("\n--- Load User ---");
 
-        // Show saved files as a hint
+        
         List<String> saved = fileManager.listSavedUsers();
         if (!saved.isEmpty()) {
             System.out.println("  Saved users found: " + String.join(", ", saved));
@@ -231,8 +198,6 @@ public class MainApp {
             System.out.println("  Load failed: " + e.getMessage());
         }
     }
-
-    /** Option 9 — list all users currently in memory */
     private static void listUsers() {
         System.out.println("\n--- Users in Memory ---");
         if (users.isEmpty()) {
@@ -245,11 +210,6 @@ public class MainApp {
             System.out.println("  " + entry.getKey() + "  →  " + entry.getValue() + marker);
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Display helpers
-    // -----------------------------------------------------------------------
-
     private static void printBanner() {
         System.out.println();
         System.out.println("  ╔══════════════════════════════════════╗");
@@ -282,12 +242,6 @@ public class MainApp {
         System.out.println("  └─────────────────────────────────┘");
         System.out.print(activeUser);
     }
-
-    // -----------------------------------------------------------------------
-    // Input helpers — all exception handling lives here
-    // -----------------------------------------------------------------------
-
-    /** Reads a non-empty trimmed string from the user. */
     private static String readLine(String prompt) {
         while (true) {
             System.out.print("  " + prompt + ": ");
@@ -296,8 +250,6 @@ public class MainApp {
             System.out.println("  Input cannot be empty. Try again.");
         }
     }
-
-    /** Reads a valid integer, re-prompting on bad input. */
     private static int readInt(String prompt) {
         while (true) {
             try {
@@ -308,8 +260,6 @@ public class MainApp {
             }
         }
     }
-
-    /** Reads a valid double, re-prompting on bad input. */
     private static double readDouble(String prompt) {
         while (true) {
             try {
@@ -320,12 +270,6 @@ public class MainApp {
             }
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Guard helpers — keep menu methods clean
-    // -----------------------------------------------------------------------
-
-    /** Returns false and prints a message if no user is selected. */
     private static boolean requireUser() {
         if (currentUser == null) {
             System.out.println("  No user selected. Create one (1) or load one (8) first.");
@@ -334,7 +278,6 @@ public class MainApp {
         return true;
     }
 
-    /** Returns false and prints a message if the current user has no records. */
     private static boolean requireRecords() {
         if (currentUser.getRecords().isEmpty()) {
             System.out.println("  No records found for " + currentUser.getName() + ". Add one with option 3.");

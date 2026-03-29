@@ -5,8 +5,7 @@ public class User {
     private String userId;
     private String name;
     private int age;
-    private List<DailyRecord> records; // Composition
-
+    private List<DailyRecord> records; 
     public User(String name, int age, String userId ) {
         if (name == null || name.trim().isEmpty())
             throw new IllegalArgumentException("Name cannot be empty");
@@ -17,8 +16,6 @@ public class User {
         this.age = age;
         this.records = new ArrayList<>();
     }
-
-    // Getters only — no public setters to enforce encapsulation
     public String getUserId() { return userId; }
     public String getName() { return name; }
     public int getAge() { return age; }

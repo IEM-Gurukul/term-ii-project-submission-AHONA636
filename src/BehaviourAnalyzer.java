@@ -10,8 +10,6 @@ public class BehaviourAnalyzer {
         sb.append("Date: ").append(record.getDate()).append("\n");
         sb.append("Stress Score: ").append(score).append("\n");
         sb.append("Risk Level: ").append(risk).append("\n");
-
-        // Pattern detection
         for (BehaviourSignal signal : record.getSignals()) {
             if (signal instanceof SleepSignal) {
                 SleepSignal s = (SleepSignal) signal;
@@ -28,8 +26,6 @@ public class BehaviourAnalyzer {
         }
         return sb.toString();
     }
-
-    // Analyze a full week for a user
     public String analyzeWeek(User user) {
         List<DailyRecord> records = user.getRecords();
         if (records.isEmpty()) return "No data available for " + user.getName();

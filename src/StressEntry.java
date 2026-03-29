@@ -1,6 +1,6 @@
 
-public class StressEntry extends BehaviorSignal {
-    private int selfRating; // 1–10 user-reported stress
+public class StressEntry extends BehaviourSignal {
+    private int selfRating; 
 
     public StressEntry(String date, int selfRating) {
         super("STRESS", date);

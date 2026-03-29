@@ -1,4 +1,3 @@
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -6,8 +5,6 @@ public class DailyRecord {
 
     private String date;
     private List<BehaviourSignal> signals;
-
-    // Constructor
     public DailyRecord(String date) {
         if (date == null || date.trim().isEmpty())
             throw new IllegalArgumentException("Date cannot be empty");
@@ -25,13 +22,6 @@ public class DailyRecord {
     public int getSignalCount() {
         return signals.size();
     }
-
-    // --- Core Methods ---
-
-    /**
-     * Adds a behavioral signal to this day's record.
-     * Validates that the signal's date matches this record's date.
-     */
     public void addSignal(BehaviourSignal signal) {
         if (signal == null)
             throw new IllegalArgumentException("Signal cannot be null");
@@ -49,29 +39,18 @@ public class DailyRecord {
         }
         return total;
     }
-
-    /**
-     * Converts the numeric stress score into a human-readable risk level.
-     */
     public String getRiskLevel() {
         int score = getTotalStressScore();
         if (score >= 8) return "HIGH";
         if (score >= 4) return "MODERATE";
         return "LOW";
     }
-
-    /**
-     * Checks whether a signal of a given type already exists for this day.
-     * Useful to prevent duplicate sleep/work entries.
-     */
     public boolean hasSignalOfType(String signalType) {
         for (BehaviourSignal signal : signals) {
             if (signal.getSignalType().equalsIgnoreCase(signalType)) return true;
         }
         return false;
     }
-
-    // --- Display ---
 
     @Override
     public String toString() {
