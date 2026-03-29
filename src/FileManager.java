@@ -1,104 +1,276 @@
-import java.io.*;
-public class FileManager {
-    private static final String FILE_NAME = "empathai_data.txt";
-    public void save(User user) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+package src;
 
-            writer.write(user.getName() + "," + user.getAge() + "," + user.getUserId());
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Handles all file I/O for EmpathAI — saving and loading User data.
+ * Demonstrates: File I/O, Exception Handling, Serialization via plain text
+ */
+public class FileManager {
+
+    private static final String DATA_DIR      = "data/";
+    private static final String FILE_EXT      = ".txt";
+    private static final String TAG_USER      = "USER:";
+    private static final String TAG_RECORD    = "RECORD:";
+    private static final String TAG_SLEEP     = "SLEEP:";
+    private static final String TAG_WORK      = "WORK:";
+    private static final String TAG_STRESS    = "STRESS:";
+
+    // -----------------------------------------------------------------------
+    // Constructor — ensures data/ directory exists before any read/write
+    // -----------------------------------------------------------------------
+
+    public FileManager() {
+        File dir = new File(DATA_DIR);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (created) {
+                System.out.println("  Created data directory: " + DATA_DIR);
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Save
+    // -----------------------------------------------------------------------
+
+    /**
+     * Serializes a User and all their DailyRecords to a plain text file.
+     * File format:
+     *
+     *   USER:u001,Arjun,21
+     *   RECORD:2025-03-27
+     *   SLEEP:6.5
+     *   WORK:9.0
+     *   STRESS:7
+     *   RECORD:2025-03-28
+     *   SLEEP:7.0
+     *   ...
+     *
+     * Throws IOException if the file cannot be written.
+     */
+    public void saveUser(User user) throws IOException {
+        if (user == null)
+            throw new IllegalArgumentException("User cannot be null");
+
+        String filepath = buildPath(user.getUserId());
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
+
+            // --- User header line ---
+            writer.write(TAG_USER
+                + user.getUserId() + ","
+                + user.getName()   + ","
+                + user.getAge());
             writer.newLine();
 
+            // --- One block per DailyRecord ---
             for (DailyRecord record : user.getRecords()) {
-                writer.write("DATE:" + record.getDate());
+                writer.write(TAG_RECORD + record.getDate());
                 writer.newLine();
 
-                for (BehaviourSignal signal : record.getSignals()) {
-                    if (signal instanceof SleepSignal) {
-                        SleepSignal s = (SleepSignal) signal;
-                        writer.write("SLEEP," + s.getHoursSlept());
-                    } else if (signal instanceof WorkSession) {
-                        WorkSession w = (WorkSession) signal;
-                        writer.write("WORK," + w.getHoursWorked());
-                    } else if (signal instanceof StressEntry) {
-                        StressEntry s = (StressEntry) signal;
-                        writer.write("STRESS," + s.getStressContribution());
-                    }
+                for (BehaviorSignal signal : record.getSignals()) {
+                    writer.write(signalToLine(signal));
                     writer.newLine();
                 }
             }
-            System.out.println("Data saved successfully.");
-        } catch (IOException e) {
-            System.out.println("Error saving file.");
+
         }
+        // BufferedWriter auto-closed by try-with-resources
+
+        System.out.println("  Saved " + user.getRecords().size()
+            + " record(s) for '" + user.getName()
+            + "' → " + filepath);
     }
-    public User load() {
-        File file = new File(FILE_NAME);
-        if (!file.exists()) {
-            System.out.println("No saved data found.");
-            return null;
-        }
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+    // -----------------------------------------------------------------------
+    // Load
+    // -----------------------------------------------------------------------
 
-            String line = reader.readLine();
-            if (line == null) return null;
+    /**
+     * Reads a saved text file and reconstructs a fully populated User object.
+     * Throws FileNotFoundException if no file exists for the given userId.
+     * Throws IOException on any read error.
+     */
+    public User loadUser(String userId) throws IOException {
+        if (userId == null || userId.trim().isEmpty())
+            throw new IllegalArgumentException("User ID cannot be empty");
 
-            String[] userData = line.split(",");
-            User user = new User(userData[0], Integer.parseInt(userData[1]), userData[2]);
+        String filepath = buildPath(userId);
+        File   file     = new File(filepath);
 
-            DailyRecord currentRecord = null;
+        if (!file.exists())
+            throw new FileNotFoundException(
+                "No saved data found for user ID '" + userId + "' in " + DATA_DIR);
+
+        User        user          = null;
+        DailyRecord currentRecord = null;
+        int         lineNumber    = 0;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
 
             while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                line = line.trim();
+                if (line.isEmpty()) continue; // skip blank lines gracefully
 
-                if (line.startsWith("DATE:")) {
-                    currentRecord = new DailyRecord(line.substring(5));
+                if (line.startsWith(TAG_USER)) {
+                    user = parseUserLine(line, lineNumber);
+
+                } else if (line.startsWith(TAG_RECORD)) {
+                    if (user == null)
+                        throw new IOException("RECORD tag found before USER tag at line " + lineNumber);
+                    currentRecord = new DailyRecord(line.substring(TAG_RECORD.length()).trim());
                     user.addRecord(currentRecord);
-                } else if (currentRecord != null) {
 
-                    String[] parts = line.split(",");
+                } else if (line.startsWith(TAG_SLEEP)
+                        || line.startsWith(TAG_WORK)
+                        || line.startsWith(TAG_STRESS)) {
+                    if (currentRecord == null)
+                        throw new IOException("Signal tag found before any RECORD tag at line " + lineNumber);
+                    BehaviorSignal signal = parseSignalLine(line, currentRecord.getDate(), lineNumber);
+                    currentRecord.addSignal(signal);
 
-                    switch (parts[0]) {
-                        case "SLEEP":
-                            currentRecord.addSignal(new SleepSignal(currentRecord.getDate(),
-                                    Integer.parseInt(parts[1])));
-                            break;
-
-                        case "WORK":
-                            currentRecord.addSignal(new WorkSession(currentRecord.getDate(),
-                                    Integer.parseInt(parts[1])));
-                            break;
-
-                        case "STRESS":
-                            currentRecord.addSignal(new StressEntry(currentRecord.getDate(),
-                                    Integer.parseInt(parts[1])));
-                            break;
-                    }
+                } else {
+                    // Unknown tag — log and skip rather than crash
+                    System.out.println("  Warning: unrecognised line " + lineNumber + " skipped: " + line);
                 }
             }
-
-            System.out.println("Data loaded successfully.");
-            return user;
-
-        } catch (IOException e) {
-            System.out.println("Error loading file.");
         }
 
-        return null;
+        if (user == null)
+            throw new IOException("File appears empty or missing USER tag: " + filepath);
+
+        System.out.println("  Loaded '" + user.getName()
+            + "' with " + user.getRecords().size() + " record(s) from " + filepath);
+        return user;
     }
 
-    // ================= AUTO-SAVE THREAD =================
-    public void autoSave(User user) {
-        Thread t = new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(10000); // save every 10 sec
-                    save(user);
-                } catch (InterruptedException e) {
-                    System.out.println("Auto-save stopped.");
-                }
-            }
-        });
+    // -----------------------------------------------------------------------
+    // Utility
+    // -----------------------------------------------------------------------
 
-        t.setDaemon(true); // background thread
-        t.start();
+    /**
+     * Returns a list of user IDs that have saved files in data/.
+     * Returns an empty list (not null) if none exist.
+     */
+    public List<String> listSavedUsers() {
+        List<String> ids  = new ArrayList<>();
+        File         dir  = new File(DATA_DIR);
+        File[]       files = dir.listFiles(
+            (d, name) -> name.endsWith(FILE_EXT)
+        );
+        if (files != null) {
+            for (File f : files) {
+                ids.add(f.getName().replace(FILE_EXT, ""));
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Deletes the saved file for a given user ID.
+     * Returns true if deleted, false if no file existed.
+     */
+    public boolean deleteUser(String userId) {
+        File file = new File(buildPath(userId));
+        if (file.exists()) {
+            boolean deleted = file.delete();
+            if (deleted) System.out.println("  Deleted saved data for: " + userId);
+            return deleted;
+        }
+        return false;
+    }
+
+    /**
+     * Checks whether a saved file exists for the given user ID.
+     */
+    public boolean userFileExists(String userId) {
+        return new File(buildPath(userId)).exists();
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    /** Builds the full file path for a given user ID. */
+    private String buildPath(String userId) {
+        return DATA_DIR + userId + FILE_EXT;
+    }
+
+    /**
+     * Converts a BehaviorSignal object into its file representation.
+     * Each subclass maps to one of the three tags.
+     */
+    private String signalToLine(BehaviorSignal signal) {
+        if (signal instanceof SleepSignal) {
+            return TAG_SLEEP + ((SleepSignal) signal).getHoursSlept();
+        } else if (signal instanceof WorkSession) {
+            return TAG_WORK + ((WorkSession) signal).getHoursWorked();
+        } else if (signal instanceof StressEntry) {
+            return TAG_STRESS + ((StressEntry) signal).getSelfRating();
+        }
+        // Fallback — should never happen unless a new subclass is added
+        throw new IllegalArgumentException(
+            "Unknown BehaviorSignal subclass: " + signal.getClass().getName());
+    }
+
+    /**
+     * Parses a USER: line and returns a new User object.
+     * Expected format: USER:id,name,age
+     */
+    private User parseUserLine(String line, int lineNumber) throws IOException {
+        String data = line.substring(TAG_USER.length()).trim();
+        String[] parts = data.split(",", 3); // max 3 parts — name may contain spaces
+
+        if (parts.length < 3)
+            throw new IOException(
+                "Malformed USER line at line " + lineNumber + ": expected id,name,age → got: " + data);
+
+        try {
+            String id   = parts[0].trim();
+            String name = parts[1].trim();
+            int    age  = Integer.parseInt(parts[2].trim());
+            return new User(id, name, age);
+        } catch (NumberFormatException e) {
+            throw new IOException(
+                "Invalid age in USER line at line " + lineNumber + ": " + data);
+        } catch (IllegalArgumentException e) {
+            throw new IOException(
+                "Invalid user data at line " + lineNumber + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Parses a SLEEP:, WORK:, or STRESS: line and returns the correct subclass.
+     */
+    private BehaviorSignal parseSignalLine(String line, String date, int lineNumber)
+            throws IOException {
+        try {
+            if (line.startsWith(TAG_SLEEP)) {
+                double hours = Double.parseDouble(line.substring(TAG_SLEEP.length()).trim());
+                return new SleepSignal(date, hours);
+
+            } else if (line.startsWith(TAG_WORK)) {
+                double hours = Double.parseDouble(line.substring(TAG_WORK.length()).trim());
+                return new WorkSession(date, hours);
+
+            } else if (line.startsWith(TAG_STRESS)) {
+                int rating = Integer.parseInt(line.substring(TAG_STRESS.length()).trim());
+                return new StressEntry(date, rating);
+            }
+        } catch (NumberFormatException e) {
+            throw new IOException(
+                "Malformed numeric value at line " + lineNumber + ": " + line);
+        } catch (IllegalArgumentException e) {
+            throw new IOException(
+                "Invalid signal data at line " + lineNumber + ": " + e.getMessage());
+        }
+
+        // Should be unreachable given the callers check before calling
+        throw new IOException("Unrecognised signal tag at line " + lineNumber + ": " + line);
     }
 }
